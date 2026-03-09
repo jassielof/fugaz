@@ -1,0 +1,6 @@
+[submodule "modules/tempfile-rust"]
+	path = modules/tempfile-rust
+	url = https://github.com/Stebalien/tempfile.git
+[submodule "modules/temp-zig"]
+	path = modules/temp-zig
+	url = https://github.com/abhinav/temp.zig
