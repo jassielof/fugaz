@@ -1,6 +1,6 @@
 # Fugaz
 
-Fugaz is a library for creating temporary files and directories in Zig. 
+Fugaz is a library for creating temporary files and directories in Zig.
 
 ## Credits
 
