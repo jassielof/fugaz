@@ -1,5 +1,5 @@
 .{
-    .name = .tempfile,
+    .name = .fugaz,
     .version = "0.0.0",
     .fingerprint = 0x74d536068e1df96d,
     .minimum_zig_version = "0.15.2",
