@@ -1,5 +1,7 @@
 # Fugaz
 
+Fugaz is a library for creating temporary files and directories in Zig. 
+
 ## Credits
 
 - [Steven Allen's Rust implementation](https://github.com/Stebalien/tempfile.git)
