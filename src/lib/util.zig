@@ -1,6 +1,7 @@
 const std = @import("std");
 
 const Allocator = std.mem.Allocator;
+const Io = std.Io;
 
 pub const ArtifactKind = enum {
     file,
@@ -8,11 +9,11 @@ pub const ArtifactKind = enum {
 };
 
 pub const CreatedFile = struct {
-    file: std.fs.File,
+    file: Io.File,
     path: []u8,
 };
 
-pub const CreateError = Allocator.Error || std.fs.Dir.MakeError || std.fs.File.OpenError || std.fs.Dir.OpenError || error{ InvalidName, PathAlreadyExists };
+pub const CreateError = Allocator.Error || Io.Dir.CreateDirError || Io.File.OpenError || Io.Dir.OpenError || error{ InvalidName, PathAlreadyExists };
 
 pub fn validateNameComponent(component: []const u8) error{InvalidName}!void {
     for (component) |byte| {
@@ -23,6 +24,7 @@ pub fn validateNameComponent(component: []const u8) error{InvalidName}!void {
 }
 
 pub fn createTempDir(
+    io: Io,
     allocator: Allocator,
     parent_path: []const u8,
     prefix: []const u8,
@@ -33,8 +35,8 @@ pub fn createTempDir(
     try validateNameComponent(prefix);
     try validateNameComponent(suffix);
 
-    var parent_dir = try std.fs.openDirAbsolute(parent_path, .{});
-    defer parent_dir.close();
+    var parent_dir = try Io.Dir.openDirAbsolute(io, parent_path, .{});
+    defer parent_dir.close(io);
 
     var basename = try allocator.alloc(u8, prefix.len + random_len + suffix.len);
     defer allocator.free(basename);
@@ -43,9 +45,9 @@ pub fn createTempDir(
     @memcpy(basename[prefix.len + random_len ..], suffix);
 
     for (0..attempts) |_| {
-        fillRandomName(basename[prefix.len .. prefix.len + random_len]);
+        fillRandomName(io, basename[prefix.len .. prefix.len + random_len]);
 
-        parent_dir.makeDir(basename) catch |err| switch (err) {
+        parent_dir.createDir(io, basename, .default_dir) catch |err| switch (err) {
             error.PathAlreadyExists => continue,
             else => return err,
         };
@@ -57,6 +59,7 @@ pub fn createTempDir(
 }
 
 pub fn createTempFile(
+    io: Io,
     allocator: Allocator,
     parent_path: []const u8,
     prefix: []const u8,
@@ -67,8 +70,8 @@ pub fn createTempFile(
     try validateNameComponent(prefix);
     try validateNameComponent(suffix);
 
-    var parent_dir = try std.fs.openDirAbsolute(parent_path, .{});
-    defer parent_dir.close();
+    var parent_dir = try Io.Dir.openDirAbsolute(io, parent_path, .{});
+    defer parent_dir.close(io);
 
     var basename = try allocator.alloc(u8, prefix.len + random_len + suffix.len);
     defer allocator.free(basename);
@@ -77,9 +80,9 @@ pub fn createTempFile(
     @memcpy(basename[prefix.len + random_len ..], suffix);
 
     for (0..attempts) |_| {
-        fillRandomName(basename[prefix.len .. prefix.len + random_len]);
+        fillRandomName(io, basename[prefix.len .. prefix.len + random_len]);
 
-        const file = parent_dir.createFile(basename, .{
+        const file = parent_dir.createFile(io, basename, .{
             .exclusive = true,
             .read = true,
         }) catch |err| switch (err) {
@@ -96,41 +99,41 @@ pub fn createTempFile(
     return error.PathAlreadyExists;
 }
 
-pub fn deleteAbsolute(kind: ArtifactKind, absolute_path: []const u8) !void {
+pub fn deleteAbsolute(io: Io, kind: ArtifactKind, absolute_path: []const u8) !void {
     const parent_path = std.fs.path.dirname(absolute_path) orelse return error.InvalidName;
     const basename = std.fs.path.basename(absolute_path);
 
-    var parent_dir = try std.fs.openDirAbsolute(parent_path, .{ .iterate = kind == .directory });
-    defer parent_dir.close();
+    var parent_dir = try Io.Dir.openDirAbsolute(io, parent_path, .{});
+    defer parent_dir.close(io);
 
     switch (kind) {
-        .file => try parent_dir.deleteFile(basename),
-        .directory => try parent_dir.deleteTree(basename),
+        .file => try parent_dir.deleteFile(io, basename),
+        .directory => try parent_dir.deleteTree(io, basename),
     }
 }
 
-pub fn openFileAbsolute(absolute_path: []const u8, flags: std.fs.File.OpenFlags) !std.fs.File {
+pub fn openFileAbsolute(io: Io, absolute_path: []const u8, flags: Io.File.OpenFlags) !Io.File {
     const parent_path = std.fs.path.dirname(absolute_path) orelse return error.InvalidName;
     const basename = std.fs.path.basename(absolute_path);
 
-    var parent_dir = try std.fs.openDirAbsolute(parent_path, .{});
-    defer parent_dir.close();
+    var parent_dir = try Io.Dir.openDirAbsolute(io, parent_path, .{});
+    defer parent_dir.close(io);
 
-    return parent_dir.openFile(basename, flags);
+    return parent_dir.openFile(io, basename, flags);
 }
 
-pub fn renameAbsolute(old_path: []const u8, new_path: []const u8) !void {
-    try std.fs.renameAbsolute(old_path, new_path);
+pub fn renameAbsolute(io: Io, old_path: []const u8, new_path: []const u8) !void {
+    try Io.Dir.renameAbsolute(old_path, new_path, io);
 }
 
-fn fillRandomName(buffer: []u8) void {
+fn fillRandomName(io: Io, buffer: []u8) void {
     const alphabet = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
     var random_bytes: [128]u8 = undefined;
     var index: usize = 0;
     while (index < buffer.len) {
         const chunk_len = @min(random_bytes.len, buffer.len - index);
-        std.crypto.random.bytes(random_bytes[0..chunk_len]);
+        io.random(random_bytes[0..chunk_len]);
         for (random_bytes[0..chunk_len], 0..) |byte, offset| {
             buffer[index + offset] = alphabet[byte % alphabet.len];
         }
@@ -140,31 +143,33 @@ fn fillRandomName(buffer: []u8) void {
 
 test createTempDir {
     const allocator = std.testing.allocator;
+    const io = std.testing.io;
     var sandbox = std.testing.tmpDir(.{});
     defer sandbox.cleanup();
 
-    const parent_path = try sandbox.dir.realpathAlloc(allocator, ".");
+    const parent_path = try sandbox.dir.realPathFileAlloc(io, ".", allocator);
     defer allocator.free(parent_path);
 
-    const path = try createTempDir(allocator, parent_path, "zig-", ".tmp", 10, 32);
+    const path = try createTempDir(io, allocator, parent_path, "zig-", ".tmp", 10, 32);
     defer allocator.free(path);
-    defer deleteAbsolute(.directory, path) catch {};
+    defer deleteAbsolute(io, .directory, path) catch {};
 
     try std.testing.expect(std.mem.startsWith(u8, std.fs.path.basename(path), "zig-"));
 }
 
 test createTempFile {
     const allocator = std.testing.allocator;
+    const io = std.testing.io;
     var sandbox = std.testing.tmpDir(.{});
     defer sandbox.cleanup();
 
-    const parent_path = try sandbox.dir.realpathAlloc(allocator, ".");
+    const parent_path = try sandbox.dir.realPathFileAlloc(io, ".", allocator);
     defer allocator.free(parent_path);
 
-    var created = try createTempFile(allocator, parent_path, "zig-", ".tmp", 10, 32);
-    defer created.file.close();
+    var created = try createTempFile(io, allocator, parent_path, "zig-", ".tmp", 10, 32);
+    defer created.file.close(io);
     defer allocator.free(created.path);
-    defer deleteAbsolute(.file, created.path) catch {};
+    defer deleteAbsolute(io, .file, created.path) catch {};
 
     try std.testing.expect(std.mem.endsWith(u8, created.path, ".tmp"));
 }

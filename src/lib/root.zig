@@ -1,4 +1,4 @@
-//! Secure-ish and convenient temporary files and directories for Zig 0.15.
+//! Secure-ish and convenient temporary files and directories.
 //!
 //! The library centers around a small set of types:
 //!
@@ -18,29 +18,31 @@ pub const TempFile = @import("TempFile.zig");
 pub const TempPath = @import("TempPath.zig");
 pub const env = @import("env.zig");
 
+const Io = std.Io;
+
 /// Returns a builder with the default naming scheme.
 pub fn builder() Builder {
     return Builder.init();
 }
 
 /// Creates a temporary directory inside the process temporary directory.
-pub fn tempDir(allocator: std.mem.Allocator) !TempDir {
-    return Builder.init().tempDir(allocator);
+pub fn tempDir(io: Io, allocator: std.mem.Allocator) !TempDir {
+    return Builder.init().tempDir(io, allocator);
 }
 
 /// Creates a temporary directory inside `parent_path`.
-pub fn tempDirIn(allocator: std.mem.Allocator, parent_path: []const u8) !TempDir {
-    return Builder.init().tempDirIn(allocator, parent_path);
+pub fn tempDirIn(io: Io, allocator: std.mem.Allocator, parent_path: []const u8) !TempDir {
+    return Builder.init().tempDirIn(io, allocator, parent_path);
 }
 
 /// Creates a temporary file inside the process temporary directory.
-pub fn tempFile(allocator: std.mem.Allocator) !TempFile {
-    return Builder.init().tempFile(allocator);
+pub fn tempFile(io: Io, allocator: std.mem.Allocator) !TempFile {
+    return Builder.init().tempFile(io, allocator);
 }
 
 /// Creates a temporary file inside `parent_path`.
-pub fn tempFileIn(allocator: std.mem.Allocator, parent_path: []const u8) !TempFile {
-    return Builder.init().tempFileIn(allocator, parent_path);
+pub fn tempFileIn(io: Io, allocator: std.mem.Allocator, parent_path: []const u8) !TempFile {
+    return Builder.init().tempFileIn(io, allocator, parent_path);
 }
 
 comptime {

@@ -17,12 +17,11 @@ pub fn tempDirPathAlloc(allocator: Allocator) TempDirPathError![]u8 {
 
 fn windowsTempDirPathAlloc(allocator: Allocator) TempDirPathError![]u8 {
     const windows = std.os.windows;
-    const kernel32 = windows.kernel32;
 
     var wide_buffer: [32767]u16 = undefined;
     const wide_len = GetTempPathW(@intCast(wide_buffer.len), &wide_buffer);
     if (wide_len == 0) {
-        return windows.unexpectedError(kernel32.GetLastError());
+        return windows.unexpectedError(windows.GetLastError());
     }
     if (wide_len > wide_buffer.len) {
         return error.NameTooLong;
