@@ -32,16 +32,16 @@ pub fn build(b: *std.Build) void {
 
     const tests_step = b.step("tests", "Run the test suite");
 
-    const integration_tests = b.addTest(.{
+    const unit_tests = b.addTest(.{
         .root_module = lib_mod,
-        .name = "integration tests",
+        .name = "Unit Tests",
     });
 
-    const run_integration_tests = b.addRunArtifact(integration_tests);
-    tests_step.dependOn(&run_integration_tests.step);
+    const run_unit_tests = b.addRunArtifact(unit_tests);
+    tests_step.dependOn(&run_unit_tests.step);
 
-    const unit_tests = b.addTest(.{
-        .name = "unit tests",
+    const integration_tests = b.addTest(.{
+        .name = "Integration Tests",
         .root_module = b.createModule(.{
             .root_source_file = b.path("tests/suite.zig"),
             .optimize = optimize,
@@ -55,6 +55,6 @@ pub fn build(b: *std.Build) void {
         }),
     });
 
-    const run_unit_tests = b.addRunArtifact(unit_tests);
-    tests_step.dependOn(&run_unit_tests.step);
+    const run_integration_tests = b.addRunArtifact(integration_tests);
+    tests_step.dependOn(&run_integration_tests.step);
 }
