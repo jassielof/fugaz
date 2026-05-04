@@ -1,6 +1,6 @@
-[submodule "modules/tempfile-rust"]
+[submodule "references/tempfile-rust"]
 	path = references/tempfile-rust
 	url = https://github.com/Stebalien/tempfile.git
-[submodule "modules/temp-zig"]
+[submodule "references/temp-zig"]
 	path = references/temp-zig
 	url = https://github.com/abhinav/temp.zig
