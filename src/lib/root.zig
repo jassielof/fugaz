@@ -43,6 +43,6 @@ pub fn tempFileIn(allocator: std.mem.Allocator, parent_path: []const u8) !TempFi
     return Builder.init().tempFileIn(allocator, parent_path);
 }
 
-test {
+comptime {
     std.testing.refAllDecls(@This());
 }
