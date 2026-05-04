@@ -11,8 +11,11 @@ pub fn tempDirPathAlloc(allocator: Allocator) TempDirPathError![]u8 {
         return windowsTempDirPathAlloc(allocator);
     }
 
-    const path = std.posix.getenv("TMPDIR") orelse "/tmp";
-    return allocator.dupe(u8, path);
+    const path = std.process.getEnvVarOwned(allocator, "TMPDIR") catch |err| switch (err) {
+        error.EnvironmentVariableNotFound => return allocator.dupe(u8, "/tmp"),
+        else => |e| return e,
+    };
+    return path;
 }
 
 fn windowsTempDirPathAlloc(allocator: Allocator) TempDirPathError![]u8 {
