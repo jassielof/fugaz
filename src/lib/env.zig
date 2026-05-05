@@ -28,9 +28,11 @@ fn windowsTempDirPathAlloc(allocator: Allocator) TempDirPathError![]u8 {
 
     var wide_buffer: [32767]u16 = undefined;
     const wide_len = GetTempPathW(@intCast(wide_buffer.len), &wide_buffer);
+
     if (wide_len == 0) {
         return windows.unexpectedError(windows.GetLastError());
     }
+
     if (wide_len > wide_buffer.len) {
         return error.NameTooLong;
     }
@@ -40,6 +42,7 @@ fn windowsTempDirPathAlloc(allocator: Allocator) TempDirPathError![]u8 {
 
     var end_index: usize = 0;
     var iterator = std.unicode.Utf16LeIterator.init(wide_buffer[0..wide_len]);
+
     while (iterator.nextCodepoint() catch return error.Unexpected) |codepoint| {
         end_index += std.unicode.utf8Encode(codepoint, utf8_path[end_index..]) catch {
             return error.Unexpected;
