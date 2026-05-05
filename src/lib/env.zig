@@ -11,14 +11,13 @@ pub fn tempDirPathAlloc(allocator: Allocator) TempDirPathError![]u8 {
         return windowsTempDirPathAlloc(allocator);
     }
 
-    for (std.os.environ) |line| {
-        var key_len: usize = 0;
-        while (line[key_len] != 0 and line[key_len] != '=') : (key_len += 1) {}
-        if (line[key_len] != '=') continue;
-        if (!std.mem.eql(u8, line[0..key_len], "TMPDIR")) continue;
+    if (builtin.is_test) {
+        var environ_map = try std.process.Environ.createMap(std.testing.environ, allocator);
+        defer environ_map.deinit();
 
-        const value = line[key_len + 1 .. std.mem.len(line)];
-        return allocator.dupe(u8, value);
+        if (environ_map.get("TMPDIR")) |path| {
+            return allocator.dupe(u8, path);
+        }
     }
 
     return allocator.dupe(u8, "/tmp");
