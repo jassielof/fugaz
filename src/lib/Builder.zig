@@ -74,7 +74,7 @@ pub fn tempDir(self: Builder, io: Io, allocator: Allocator) !TempDir {
 
 /// Creates a temporary directory in `parent_path`.
 pub fn tempDirIn(self: Builder, io: Io, allocator: Allocator, parent_path: []const u8) !TempDir {
-    const resolved_parent = try Io.Dir.realPathFileAbsoluteAlloc(io, parent_path, allocator);
+    const resolved_parent = try Io.Dir.cwd().realPathFileAlloc(io, parent_path, allocator);
     defer allocator.free(resolved_parent);
 
     const path = try util.createTempDir(
@@ -110,7 +110,7 @@ pub fn tempFile(self: Builder, io: Io, allocator: Allocator) !TempFile {
 
 /// Creates a temporary file in `parent_path`.
 pub fn tempFileIn(self: Builder, io: Io, allocator: Allocator, parent_path: []const u8) !TempFile {
-    const resolved_parent = try Io.Dir.realPathFileAbsoluteAlloc(io, parent_path, allocator);
+    const resolved_parent = try Io.Dir.cwd().realPathFileAlloc(io, parent_path, allocator);
     defer allocator.free(resolved_parent);
 
     const created = try util.createTempFile(
